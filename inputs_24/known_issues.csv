@@ -1,0 +1,5 @@
+issue_id,title,status,customer_guidance
+ISS-101,PDF invoice downloads as a blank page,FIXED in v4.2,Ask customer to refresh browser or update to v4.2 and download the invoice again
+ISS-102,Dark mode text is hard to read on dashboard charts,OPEN,Be upfront that the fix is planned for next week; temporary workaround is switching to Light Mode in Settings > Appearance
+ISS-103,CSV export stops at 500 rows,FIXED in v4.1,Resolved in v4.1; full exports work automatically once updated
+ISS-104,Team invite email button says link expired,OPEN,Be upfront that it is still open; workaround is copying the direct invite URL from Settings > Team > Copy Link

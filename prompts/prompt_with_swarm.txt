@@ -1,0 +1,4 @@
+/swarm Triage the 6 customer emails in `inputs/`:
+- Read `inputs/reply_guidelines.md` and `inputs/known_issues.csv`.
+- Read all 6 customer emails in `inputs/emails/`.
+- Write `reply_01.md` through `reply_06.md` plus `weekly_triage_summary.md` inside `outputs/with_swarm/`, making sure every reply matches `known_issues.csv` accurately and any new unlisted bug is flagged clearly.

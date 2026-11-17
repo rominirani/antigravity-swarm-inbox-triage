@@ -1,0 +1,4 @@
+/swarm Triage all 24 customer emails in `inputs_24/`:
+- Read `inputs_24/reply_guidelines.md` and `inputs_24/known_issues.csv`.
+- Read all 24 customer emails in `inputs_24/emails/` (`email_01.md` through `email_24.md`).
+- Write `reply_01.md` through `reply_24.md` plus `weekly_triage_summary.md` inside `outputs_24/with_swarm/`, addressing every question in multi-part emails, matching `known_issues.csv` honestly, and flagging all new unlisted multi-customer bugs clearly.
