@@ -29,16 +29,16 @@ In this tutorial, we answer both questions in plain terms. We walk through a sim
 2. **What Happens When You Type `/swarm`:** What opens on screen and how Antigravity behaves.
 3. **Interface Layouts (`Knowledge Work` and `Software Engineering`):** How Antigravity adapts its UI for non-coding and coding tasks.
 4. **The Test Scenario (Customer Inbox Triage):** Six short customer emails and a four-row status table, with simple diagrams showing how the team works.
-5. **Step-by-Step Walkthrough:** Six ordered steps to clone the repository, read the files, and run both modes yourself.
-6. **What Happened in Our 6-Email Walkthrough:** How Normal Mode and `/swarm` Mode handled the starter inbox.
-7. **Scaling Up (6 Emails vs. 24 Emails) & Summary of Findings:** What changed when inbox volume quadrupled, and the main trade-offs.
+5. **Step-by-Step Walkthrough:** Six ordered steps to clone the repository, inspect the files, and run both modes yourself.
+6. **What Happened in Our 6-Email Walkthrough:** Swarm replay and sample generated output.
+7. **Scaling Up (6 Emails vs. 24 Emails) & Summary of Findings:** What changed when inbox volume quadrupled, and how to try the 24-email batch yourself.
 8. **Where `/swarm` Helps Most & Practical Tips:** Common use cases across both layouts and habits for clean runs.
 9. **Conclusion and Next Steps:** Key takeaways and links to further reading.
 
 ### Prerequisites
 * **Google Antigravity** installed on macOS, Windows, or Linux (with an active plan and model that supports `/swarm`).
 * **`git`** installed to clone the companion repository: [rominirani/antigravity-swarm-inbox-triage](https://github.com/rominirani/antigravity-swarm-inbox-triage).
-* About **10 minutes** to inspect the sample folder and run the prompts locally. No external API keys or cloud setup are needed.
+* About **10–15 minutes** to clone the folder and run both prompts locally. No external API keys or cloud setup are needed.
 
 ---
 
@@ -55,16 +55,16 @@ One agent reads the guidelines, reads Email 1 through Email 6, writes Reply 1 th
 * **The trade-off:** Your chat stays occupied until all steps finish. Also, if your inbox has dozens of emails instead of 6, putting all of them into one conversation makes the context large, and small details from earlier messages are easier to miss.
 
 ### Mode B: One Main Agent Using Subagents (Normal Mode with Subagents)
-Even without `/swarm`, Antigravity has an `invoke_subagent` tool. Two limits still apply:
+Even without `/swarm`, Antigravity can launch background subagents on its own. Two limits still apply:
 1. **Subagents are optional:** On small or medium tasks, the main agent often decides to do everything itself in one thread.
 2. **Subagents cannot talk to each other:** Subagent A does not know Subagent B exists. Every finding goes back to the main agent, which has to read it and pass notes to the next subagent.
 
 ### Mode C: A Coordinator and a Shared Message Board (`/swarm` Mode)
 Typing `/swarm` changes how the team is set up:
-* **The main agent acts only as a Coordinator:** It does not write code or documents itself. It creates named workers (`inbox-a`, `inbox-b`, `summary-writer`, `reviewer`), assigns each one separate files, and ends its turn so your chat stays free.
-* **Workers share one message board:** Workers post numbered updates to a shared board and wake the next teammate directly using `@name` (`@summary-writer`, `@reviewer`) without routing through the Coordinator.
+* **The main agent acts only as a Coordinator:** It does not write code or documents itself. It creates named workers (such as two inbox workers, a summary writer, and a reviewer), assigns each one separate files, and ends its turn so your chat stays free.
+* **Workers share one message board:** Workers post numbered updates to a shared board and wake the next teammate directly using `@name` without routing through the Coordinator.
 * **Idle workers cost nothing while waiting:** A worker waiting on the board (`waiting` state) uses zero tokens until another post mentions its `@name` or `@all`.
-* **Separate review session:** `/swarm` adds a reviewer (`reviewer`) in its own conversation. Because the reviewer did not write the drafts, it checks every reply independently against `known_issues.csv` before finishing.
+* **Separate review session:** `/swarm` adds a reviewer in its own conversation. Because the reviewer did not write the drafts, it checks every reply independently against your list of known issues before finishing.
 
 ![Normal Mode vs. /swarm Mode in Google Antigravity](./assets/images/inbox_01_normal_vs_swarm.png)
 
@@ -89,8 +89,8 @@ Here is how Antigravity behaves without `/swarm` compared to with `/swarm`:
 | **Main agent's job** | **Does the work.** Reads files and writes outputs while your turn waits. | **Coordinator only.** Assigns work and ends its turn so your chat stays open. |
 | **Worker communication** | **Through the main agent.** Subagents cannot read each other's messages. | **Peer-to-peer.** Workers read board posts and `@mention` the next worker directly. |
 | **Checking the output** | **Self-check.** The same conversation writes and checks its own files. | **Separate reviewer.** A dedicated reviewer checks outputs and sends fixes back to authors. |
-| **Visibility & monitoring** | Tool calls appear in the main chat (or subagent logs). | **Swarm UI board** shows every post, and a **`monitor`** timer checks for stalled handoffs. |
-| **File isolation (for code)** | Uses the main workspace unless branched. | Supports `workspace: "share"` or `"branch"` (separate Git copies) and `fork` (copying warm context). |
+| **Visibility & monitoring** | Tool calls appear in the main chat (or subagent logs). | **Swarm UI board** shows every post, and a **`monitor`** checks for stalled handoffs. |
+| **File isolation (for code)** | Uses the main workspace unless branched. | Each coding worker can run in its own isolated Git copy, or branch off another worker's context. |
 
 ---
 
@@ -117,7 +117,7 @@ Our inbox triage scenario below uses plain text files and a tiny CSV rather than
 
 ## 4. The Test Scenario: Customer Inbox Triage
 
-All 10 input files in our starter folder add up to **66 lines of plain text**, so you can read the entire dataset in about a minute.
+All **8 input files** in our starter folder (`reply_guidelines.md`, `known_issues.csv`, and 6 short customer emails) add up to **under 60 lines of plain text**, so you can read the entire dataset in about a minute.
 
 Here is the complete `known_issues.csv` file (all 4 rows):
 
@@ -142,14 +142,7 @@ Across the 6 emails (`email_01` through `email_06`):
 
 ### How the 4-Worker `/swarm` Divides the Inbox
 
-One basic rule in `/swarm` is that **two workers should not edit the same file at the same time**. Our starter swarm uses just four workers with clean file ownership:
-
-| Worker | What It Reads | What It Writes | Who It Tags Next |
-| :--- | :--- | :--- | :--- |
-| `@inbox-a` | Guidelines + CSV + `email_01..03` | `reply_01.md`, `reply_02.md`, `reply_03.md` | `@summary-writer` |
-| `@inbox-b` | Guidelines + CSV + `email_04..06` | `reply_04.md`, `reply_05.md`, `reply_06.md` | `@summary-writer` |
-| `@summary-writer` | Guidelines + CSV + board notes | `weekly_triage_summary.md` | `@reviewer` |
-| `@reviewer` | All inputs + all 7 output files | *None (read-only check)* | `@coordinator` |
+One basic rule in `/swarm` is that **two workers should not edit the same file at the same time**. Our starter swarm splits the work across four roles—two inbox workers drafting separate replies in parallel, one summary writer combining their board notes, and one read-only reviewer checking all 7 outputs:
 
 ![How the 4-Worker /swarm Divides the Inbox](./assets/images/inbox_02_file_ownership.png)
 
@@ -205,21 +198,24 @@ Follow these six steps in order to clone the repository, inspect the files, and 
    git clone https://github.com/rominirani/antigravity-swarm-inbox-triage.git
    cd antigravity-swarm-inbox-triage
    ```
-2. Open **Google Antigravity**, click **Projects** in the left sidebar, and open the cloned `antigravity-swarm-inbox-triage` folder.
-3. Press `Cmd+,` (macOS) or `Ctrl+,` (Windows and Linux) to open **Settings**. Go to **General -> Interface Layout** and select **`Knowledge Work`** to try the folder-and-document view.
+2. Open **Google Antigravity**, select **Projects** (or **Folders** if you are already in `Knowledge Work` layout) in the left sidebar, and open the cloned `antigravity-swarm-inbox-triage` folder.
+3. *(Optional)* Press `Cmd+,` (macOS) or `Ctrl+,` (Windows and Linux) to open **Settings**, go to **General -> Interface Layout**, and select **`Knowledge Work`** to try the folder-and-document view.
 
-### Step 2: Read Three Short Files First (About 1 Minute)
-Skim these three tiny files so you know what to check in the generated replies:
-1. **Open [reply_guidelines.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/reply_guidelines.md) and [known_issues.csv](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/known_issues.csv):** Notice which two issues are `FIXED` (`ISS-101`, `ISS-103`) and which two are still `OPEN` (`ISS-102` Dark Mode, `ISS-104` Invite Link).
-2. **Open [email_04_david.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_04_david.md):** David asks if Dark Mode chart labels are already fixed. Because `ISS-102` is `OPEN`, a good reply must be honest that the fix ships next week and share the Light Mode workaround.
-3. **Open [email_01_priya.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_01_priya.md) and [email_03_elena.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_03_elena.md):** Both describe Apple Pay spinning forever on iPhone after updating to `v4.2`—a bug that is not in `known_issues.csv` at all.
+### Step 2: Skim the Key Input Files First (About 1 Minute)
+Open these short files inside `inputs/` so you know what to check in the generated replies:
+1. **[reply_guidelines.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/reply_guidelines.md) and [known_issues.csv](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/known_issues.csv):** Notice which two issues are `FIXED` (`ISS-101`, `ISS-103`) and which two are still `OPEN` (`ISS-102` Dark Mode, `ISS-104` Invite Link).
+2. **[email_04_david.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_04_david.md):** David asks if Dark Mode chart labels are already fixed. Because `ISS-102` is `OPEN`, a good reply must be honest that the fix ships next week and share the Light Mode workaround.
+3. **[email_01_priya.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_01_priya.md) and [email_03_elena.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/inputs/emails/email_03_elena.md):** Both describe Apple Pay spinning forever on iPhone after updating to `v4.2`—a bug that is not in `known_issues.csv` at all.
 
 ### Step 3: Clear the Reference Output Folders
-Empty `outputs/` before your runs so you can watch the 7 files appear fresh (you can restore the reference files anytime with `git checkout -- outputs/`):
+From inside your `antigravity-swarm-inbox-triage` folder, empty `outputs/` so you can watch all 7 files get created fresh:
 
 ```bash
+# macOS / Linux (on Windows PowerShell, use: Remove-Item outputs\without_swarm\*, outputs\with_swarm\*)
 rm -f outputs/without_swarm/* outputs/with_swarm/*
 ```
+
+*(You can restore the original reference files anytime with `git checkout -- outputs/`.)*
 
 ### Step 4: Run 1 — Try Normal Mode (Without `/swarm`)
 1. Click **New Conversation** in the left sidebar.
@@ -232,7 +228,7 @@ Triage the 6 customer emails in inputs/:
 - Write reply_01.md through reply_06.md plus weekly_triage_summary.md inside outputs/without_swarm/, making sure every reply matches known_issues.csv accurately and any new unlisted bug is flagged clearly.
 ```
 
-3. **What to watch:** Notice how the agent handles everything inside one conversation and keeps your chat occupied until all 7 files are written.
+3. **What to watch:** Notice how the agent handles everything inside one conversation and keeps your chat occupied until all 7 files are written. Wait for Run 1 to finish before starting Run 2.
 
 ### Step 5: Run 2 — Try Swarm Mode (With `/swarm`)
 1. Click **New Conversation** so Run 2 starts in a clean session.
@@ -246,8 +242,9 @@ Triage the 6 customer emails in inputs/:
 ```
 
 3. **What to do while Run 2 runs:**
-   * **Open the Swarm Board:** Click **Open the Swarm UI** as soon as the Coordinator finishes setting up the team. Watch `@inbox-a` and `@inbox-b` draft replies in parallel, pass their notes to `@summary-writer`, and hand off to `@reviewer`.
+   * **Open the Swarm Board:** Click **Open the Swarm UI** as soon as the Coordinator finishes setting up the team. Watch the parallel inbox workers draft replies, pass their notes to the summary writer, and hand off to the reviewer *(the Coordinator picks worker names automatically—for example `@inbox-a` and `@inbox-b`—so your exact names may vary)*.
    * **Try chatting mid-run (optional):** Send a short message in your main chat—such as *"What is the current status of the swarm?"*—to see how the Coordinator replies while the workers keep going.
+   * Wait until the Coordinator posts its final completion summary after the reviewer signs off.
 
 ### Step 6: Check Your Generated Files
 Open `outputs/without_swarm/` and `outputs/with_swarm/` and verify three simple things:
@@ -261,7 +258,7 @@ Open `outputs/without_swarm/` and `outputs/with_swarm/` and verify three simple 
 
 Both runs classified all 6 customer emails accurately ([outputs/without_swarm/weekly_triage_summary.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/outputs/without_swarm/weekly_triage_summary.md) vs. [outputs/with_swarm/weekly_triage_summary.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/outputs/with_swarm/weekly_triage_summary.md)), while behaving quite differently during execution:
 
-* **Run 1 (Without `/swarm`):** Even though `invoke_subagent` was available, the agent started **`0` subagents**. It read all 6 emails in one thread, wrote all 7 files one after another in roughly **4 minutes**, and kept the main chat busy until the end.
+* **Run 1 (Without `/swarm`):** Even though Antigravity can launch subagents in normal mode, the agent chose to do everything itself (**`0` subagents**). It read all 6 emails in one thread, wrote all 7 files one after another in roughly **4 minutes**, and kept the main chat busy until the end.
 * **Run 2 (With `/swarm`):** The Coordinator created the 4 workers (`inbox-a`, `inbox-b`, `summary-writer`, `reviewer`), displayed the **Open the Swarm UI** link, and freed the main chat immediately. `inbox-a` and `inbox-b` drafted their replies in parallel, `summary-writer` combined their board posts ([logs/swarm_board_log.md](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/logs/swarm_board_log.md)), and `reviewer` verified all 7 files against `known_issues.csv` before signing off (~5 minutes end-to-end).
 
 Here is a step-by-step replay of the `/swarm` run across the main chat, file list, and shared message board *(1080p MP4 also available at [assets/video/inbox_swarm_replay.mp4](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/assets/video/inbox_swarm_replay.mp4))*:
@@ -327,6 +324,11 @@ To find out, we ran the exact same guidelines and `known_issues.csv` on a **24-e
 | **Context per Session** | Grows with every added file in one conversation. | Stays small and steady (~half the size at 24 emails). |
 | **Quality Check & Cost** | Self-checked in the same chat (`1x` baseline tokens). | Separate read-only reviewer (~`2x` tokens overall). |
 
+### Try the 24-Email Batch Yourself (Optional)
+1. Clear the 24-email reference outputs (`rm -f outputs_24/without_swarm/* outputs_24/with_swarm/*`, or `Remove-Item outputs_24\without_swarm\*, outputs_24\with_swarm\*` on Windows PowerShell).
+2. Start a **New Conversation** and paste [prompt_24_without_swarm.txt](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/prompts/prompt_24_without_swarm.txt), then run [prompt_24_with_swarm.txt](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/prompts/prompt_24_with_swarm.txt) in a second **New Conversation**.
+3. Check `outputs_24/with_swarm/weekly_triage_summary.md` to confirm it caught both the 8-email Apple Pay hang and the 2-email Firefox 132 SSO+2FA login loop (`email_05` and `email_22`).
+
 > [!NOTE]
 > **Curious about the details?** We kept the comparison above high level so this guide stays focused on getting started. If you would like to discuss the runs or share what you build with `/swarm`, feel free to reach out.
 
@@ -337,9 +339,9 @@ To find out, we ran the exact same guidelines and `known_issues.csv` on a **24-e
 In daily work, `/swarm` applies cleanly across both Antigravity interface layouts:
 
 ### In the `Software Engineering` Layout
-1. **Parallel code changes across files or layers:** Build a feature across database migrations, backend endpoints, and UI components—or update several independent modules at once. Each author works in its own Git copy (`share` or `branch`), while a reviewer runs tests on the diffs.
+1. **Parallel code changes across files or layers:** Build a feature across database migrations, backend endpoints, and UI components—or update several independent modules at once. Each author works in its own isolated Git copy (a separate worktree or branch), while a reviewer runs tests on the diffs.
 2. **Code and security reviews with test reproduction:** Have two or three readers inspect different folders in parallel. Pair them with a reviewer that reproduces each reported bug with a failing test before an author changes code.
-3. **Bug investigations with several possible causes:** Check logs, database queries, and caching behavior at the same time—for example, investigating that new iPhone `v4.2` Apple Pay spinner across the iOS app, mobile Safari, and payment backend in parallel, then using `fork` once one worker finds the root cause.
+3. **Bug investigations with several possible causes:** Check logs, database queries, and caching behavior at the same time—for example, investigating that new iPhone `v4.2` Apple Pay spinner across the iOS app, mobile Safari, and payment backend in parallel, then handing off that worker's context once one of them finds the root cause.
 
 ### In the `Knowledge Work` Layout
 4. **Customer feedback, support queues, and research:** Split batches of emails, survey responses, or interview notes across parallel readers, surface common patterns on the board, and check outgoing replies against policy docs.
@@ -347,7 +349,7 @@ In daily work, `/swarm` applies cleanly across both Antigravity interface layout
 
 ### Four Practical Habits for Clean `/swarm` Runs
 
-1. **Avoid file collisions by design:** Give each author a separate file, folder, spreadsheet tab, or Git copy (`share` or `branch`). Two workers editing the same file at once causes avoidable rework.
+1. **Avoid file collisions by design:** Give each author a separate file, folder, spreadsheet tab, or isolated Git copy. Two workers editing the same file at once causes avoidable rework.
 2. **Keep the team lean:** Add only as many workers as there are independent tracks of work, plus one reviewer per two to four authors.
 3. **Name clear inputs and outputs:** State your input paths and expected output files clearly in the prompt. Each worker starts fresh, so clear targets produce better briefs.
 4. **Use your open Coordinator chat:** If you remember a new requirement mid-run, tell your main chat right away instead of waiting until the end.
@@ -375,7 +377,7 @@ That is where `/swarm` helps in Google Antigravity. On the 24-email inbox, paral
 ### Next Steps
 
 1. **Clone and try the 6-email scenario:** Clone [rominirani/antigravity-swarm-inbox-triage](https://github.com/rominirani/antigravity-swarm-inbox-triage), open it in **`Knowledge Work`** layout, clear `outputs/`, and run both prompts in Section 5 while watching the Swarm UI.
-2. **Try a mid-run update or the 24-email batch:** During Step 5, send a short follow-up instruction in your main chat while the workers are active—or run [prompt_24_with_swarm.txt](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/prompts/prompt_24_with_swarm.txt) on [inputs_24](https://github.com/rominirani/antigravity-swarm-inbox-triage/tree/main/inputs_24) to watch 6 parallel workers triage all 24 emails at once.
+2. **Try a mid-run update or the 24-email batch:** During Step 5, send a short follow-up instruction in your main chat while the workers are active—or follow the optional 3-step guide in Section 7 to run [prompt_24_with_swarm.txt](https://github.com/rominirani/antigravity-swarm-inbox-triage/blob/main/prompts/prompt_24_with_swarm.txt) on [inputs_24](https://github.com/rominirani/antigravity-swarm-inbox-triage/tree/main/inputs_24).
 3. **Try `/swarm` on one task of your own:** Pick a multi-file change in **`Software Engineering`** layout, or a folder of notes/emails in **`Knowledge Work`** layout, and start the prompt with `/swarm`.
 
 ### Further Reading and Resources

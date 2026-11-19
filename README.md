@@ -58,16 +58,17 @@ cd antigravity-swarm-inbox-triage
 ```
 
 ### 2. Open the folder in Google Antigravity
-1. Open **Google Antigravity**, click **Projects** in the left sidebar, and open the cloned `antigravity-swarm-inbox-triage` folder.
+1. Open **Google Antigravity**, select **Projects** (or **Folders** if you are already in `Knowledge Work` layout) in the left sidebar, and open the cloned `antigravity-swarm-inbox-triage` folder.
 2. *(Optional)* Open **Settings** (`Cmd+,` on macOS / `Ctrl+,` on Windows and Linux), go to **General → Interface Layout**, and choose **`Knowledge Work`** for a clean folder-and-document view.
 
-### 3. Skim three short files (~1 minute)
+### 3. Skim the key input files (~1 minute)
 * [`inputs/reply_guidelines.md`](./inputs/reply_guidelines.md) and [`inputs/known_issues.csv`](./inputs/known_issues.csv) — note which issues are `FIXED` (`ISS-101`, `ISS-103`) and which are still `OPEN` (`ISS-102`, `ISS-104`).
 * [`inputs/emails/email_04_david.md`](./inputs/emails/email_04_david.md) — asks about Dark Mode chart labels (`ISS-102`, still `OPEN`).
 * [`inputs/emails/email_01_priya.md`](./inputs/emails/email_01_priya.md) and [`inputs/emails/email_03_elena.md`](./inputs/emails/email_03_elena.md) — both report an unlisted iPhone `v4.2` Apple Pay checkout spinner.
 
 ### 4. Clear the reference outputs before running
 ```bash
+# macOS / Linux (on Windows PowerShell: Remove-Item outputs\without_swarm\*, outputs\with_swarm\*)
 rm -f outputs/without_swarm/* outputs/with_swarm/*
 ```
 *(You can restore the reference outputs anytime with `git checkout -- outputs/`.)*
